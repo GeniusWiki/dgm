@@ -1,0 +1,39 @@
+Command 
+dgm init [servername] -G [group1,group2] -C [gitRemoteURL]
+
+---
+dgm add [filename] [group]/-s [servername]
+dgm rm [filename] [group]/-s [servername]
+dgm commit 
+
+dgm status -a
+----
+See new add, delete 
+-a all managed files
+
+dgm checkout [filename] [group]/-s [servername]
+---
+If it is same with last revision, then replace.
+If it is different with last revision, current file is backed to last revision, then replace by head.
+
+
+---
+Note:
+[filename] - single file name; ".": all files (non-hidden) in current directory;  single directory name.
+
+h2. Configuration file
+[common]
+server=zues
+
+
+h2. Developement status
+dgm init [servername]
+
+
+dgm add [filename]
+dgm status 
+- list all managed file
+*[servername]/etc/init.d/tomcat.sh
+
+
+dgm commit -m'foo'
