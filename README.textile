@@ -1,0 +1,30 @@
+Initialise DGM repository under ~/xdev/dgm directory. Meanwhile, default DGM configuration file is created under user home directory ~/.dgm.
+
+dgm init -s ubuntu -l ~/xdev/dgm [-r gitRemoteURL]
+
+Add a file to DGM repository, file could be with relative or absolute path.
+/etc/init.d$ dgm add nagios3 
+
+Check DGM repository and git status 
+dgm status
+
+If any DGM files are updated but not synchronised to DGM repository(run dgm status to know this), run this command. 
+dgm update
+
+Commit DGM repository file into local git.
+dgm commit -m'some comment'
+
+Push DGM repository to remote git. if not set gitRemoteURL, then use dgm remote -a to set before this command.
+dgm push
+
+Other command
+dgm remote -a gitRemoteURL
+
+List how many files under DGM and DGM configuration  information.
+dgm print 
+
+
+TODO:
+* Fetch and merge remote git (dgm pull & dgm checkout filename)
+* Group of servers, and manage files in group level 
+* Check-in and check-out in different server(?)

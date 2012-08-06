@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-import ConfigParser,os,shutil,hashlib
+import ConfigParser,sys, os,shutil,hashlib
 
 dgm_version="0.1"
     
@@ -16,7 +16,7 @@ def _init(dgm):
         
     conf = os.path.join(conf_dir, 'config')
     if os.path.exists(conf):
-        print ("dgm config is existed, it may be already initialised.")
+        _stdout_error("DGM config is existed, it may be already initialised.")
         exit(0)
     
     if dgm.args.l:
@@ -31,7 +31,7 @@ def _init(dgm):
         os.makedirs(home_path, 0700)
         
     if not os.path.isdir(home_path):
-        print ("Home directory is not valid directory")
+        _stdout_error ("Home directory is not valid directory")
         exit(1)
     
     #Mkdir for this server
@@ -62,7 +62,7 @@ def _init(dgm):
     confParser.write(conf_file)
     conf_file.close()
     
-    print("Initialise dgm repository successfully.")
+    _stdout_info("Initialise DGM repository successfully.")
     
 def _add(dgm):
     """Copy file with original path to server path under current local repository . """
@@ -74,7 +74,7 @@ def _add(dgm):
             src_file = os.path.join(os.getcwd(), src_file)
             
         if not os.path.exists(src_file):
-            print("File %s does not exist" % src_file)
+            _stdout_error("File %s does not exist" % src_file)
             exit(1)
         
         if os.path.isfile(src_file):
@@ -90,7 +90,7 @@ def _add(dgm):
             shutil.copy(src_file, tgt_file)
             
             _run_cmd_from_home(dgm, "git add %s" % tgt_file)
-            print("File %s is added to repository" % src_file)
+            _stdout_info("%s is added to DGM repository" % src_file)
         
 
 def _update(dgm):
@@ -103,11 +103,15 @@ def _commit(dgm):
     
 def _status(dgm):
     """ Retrieve local repository status"""
-    _compare_files(dgm)
+    _stdout_error("DGM repository status")
+    print ("=========================================")
+    dirty = _compare_files(dgm)
+    if not dirty:
+        _stdout_info("DGM managed files all synchronised with repository.")
     
     print ("")
-    print ("dgm git status")
-    print ("=========================================")
+    _stdout_error("DGM git status")
+    print("=========================================")
     _run_cmd_from_home(dgm, "git status")
 
 def _push(dgm):
@@ -115,7 +119,7 @@ def _push(dgm):
     if dgm.git_url:
         _run_cmd_from_home(dgm, "git push origin master")
     else:
-        print "No valid remote git URL set. Run [dgm remote -r {gitURL}] first"
+        _stdout_error("No valid remote git URL set. Run [dgm remote -r {gitURL}] first")
         exit(1)
 
 def _remote(dgm):
@@ -124,19 +128,22 @@ def _remote(dgm):
 
 
 def _print(dgm):
-    print ("======================================================")
-    print ("Server name: [%s]" % dgm.server_name)
-    print ("Home directory: [%s]" % dgm.home_path)
-    print ("Home for server directory: [%s]" % dgm.server_path)
-    print ("Git URL: [%s]" % dgm.git_url)
+    _stdout_error("Server configration")
+    print("======================================================")
+    _stdout_info ("Server name: [%s]" % dgm.server_name)
+    _stdout_info ("Home directory: [%s]" % dgm.home_path)
+    _stdout_info ("Home for server directory: [%s]" % dgm.server_path)
+    _stdout_info ("Git URL: [%s]" % dgm.git_url)
+    
+    _stdout_error("DGM repository information")
     print ("======================================================")
     
     file_count = 0
     for dgm_file, src_file in _retrieve_files(dgm):
         file_count += 1
-        print (src_file)
+        _stdout_info(src_file)
 
-    print ("Managed files: %i" % file_count)
+    _stdout_info("Managed files: %i" % file_count)
             
 def main():
     dgm = DGM()
@@ -171,15 +178,16 @@ def _compare_files(dgm, overwrite=False):
         if dgm_digest != src_digest:
             dirty = True
             if overwrite:
-                print ("File %s is update to dgm repository" % src_file)
+                _stdout_info ("File %s is update to dgm repository" % src_file)
                 shutil.copy(src_file, dgm_file)
                 _run_cmd_from_home(dgm, "git add %s" % dgm_file)
             else:
-                print ("File %s is modified but not updated to dgm yet." % src_file)
+                _stdout_error("%s is modified but not updated to dgm yet." % src_file)
                 
     if dirty and not overwrite:
-        print ("Run dgm update command")
+        _stdout_info("Run [dgm update] command to synchronise original to DGM repository")
         
+    return dirty
 
 def _retrieve_files(dgm):
     for dirpath, dirnames, filenames in os.walk(dgm.server_path):
@@ -216,6 +224,28 @@ def _get_src_file(dgm, dgm_file):
     src_file = os.path.join(os.path.sep, src_file);
         
     return src_file
+
+def _stdout_error(string):
+    print(_color_message(string, error=True))
+    
+def _stdout_info(string):
+    print(_color_message(string, error=False))
+    
+    
+def _color_message(string, error=False, bold=False):
+    if not sys.stdout.isatty():
+        return string
+    
+    attr = []
+    if error:
+        # red
+        attr.append('31')
+    else:
+        # green
+        attr.append('32')
+    if bold:
+        attr.append('1')
+    return '\x1b[%sm%s\x1b[0m' % (';'.join(attr), string)
         
 class DGM:
     def __init__(self):
@@ -275,7 +305,7 @@ class DGM:
             self.server_path = os.path.join(self.home_path, self.server_name)
         else:
             if self.args.command != 'init':
-                print "Run init command first"
+                _stdout_info("Run init command first")
 
     
 if __name__ == "__main__":
