@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-import ConfigParser,os,shutil
+import ConfigParser,os,shutil,hashlib
 
 dgm_version="0.1"
     
@@ -66,8 +66,9 @@ def _init(dgm):
     
 def _add(dgm):
     """Copy file with original path to server path under current local repository . """
-    files = dgm.args.filename
+    #if dgm.args.filename == '.':
     
+    files = dgm.args.filename
     for src_file in files:
         if not src_file.startswith(os.sep):
             src_file = os.path.join(os.getcwd(), src_file)
@@ -89,15 +90,24 @@ def _add(dgm):
             shutil.copy(src_file, tgt_file)
             
             _run_cmd_from_home(dgm, "git add %s" % tgt_file)
-            print("File %s was added to repository" % src_file)
+            print("File %s is added to repository" % src_file)
         
 
+def _update(dgm):
+    """ Refresh all dgm with original files"""
+    _compare_files(dgm, True)
+    
 def _commit(dgm):
     """ Commit change to local git repository """
     _run_cmd_from_home(dgm, "git commit -m'%s'" % dgm.args.m)
     
 def _status(dgm):
     """ Retrieve local repository status"""
+    _compare_files(dgm)
+    
+    print ("")
+    print ("dgm git status")
+    print ("=========================================")
     _run_cmd_from_home(dgm, "git status")
 
 def _push(dgm):
@@ -113,6 +123,21 @@ def _remote(dgm):
     _run_cmd_from_home(dgm, "git remote add origin %s", dgm.args.r)
 
 
+def _print(dgm):
+    print ("======================================================")
+    print ("Server name: [%s]" % dgm.server_name)
+    print ("Home directory: [%s]" % dgm.home_path)
+    print ("Home for server directory: [%s]" % dgm.server_path)
+    print ("Git URL: [%s]" % dgm.git_url)
+    print ("======================================================")
+    
+    file_count = 0
+    for dgm_file, src_file in _retrieve_files(dgm):
+        file_count += 1
+        print (src_file)
+
+    print ("Managed files: %i" % file_count)
+            
 def main():
     dgm = DGM()
     
@@ -126,16 +151,59 @@ def main():
         _commit(dgm)
     elif dgm.args.command == 'push':
         _push(dgm)
+    elif dgm.args.command == 'update':
+        _update(dgm)
     elif dgm.args.command == 'remote':
         _remote(dgm)
     elif dgm.args.command == 'print':
-        print ("======================================================")
-        print ("Server name: [%s]" % dgm.server_name)
-        print ("Home directory: [%s]" % dgm.home_path)
-        print ("Home for server directory: [%s]" % dgm.server_path)
-        print ("Git URL: [%s]" % dgm.git_url)
-        print ("======================================================")
+        _print(dgm)
         
+
+def _compare_files(dgm, overwrite=False):
+    """ Check all files under dgm managed, if they are different, then overwrite filename in dgm side.  
+        So, this means, dgm managed files are not suppose to updated which will be overwritten even it is newer than original one"""
+    
+    dirty = False
+    for dgm_file, src_file in _retrieve_files(dgm):
+        dgm_digest = _file_digest(dgm_file)
+        src_digest = _file_digest(src_file)
+        
+        if dgm_digest != src_digest:
+            dirty = True
+            if overwrite:
+                print ("File %s is update to dgm repository" % src_file)
+                shutil.copy(src_file, dgm_file)
+                _run_cmd_from_home(dgm, "git add %s" % dgm_file)
+            else:
+                print ("File %s is modified but not updated to dgm yet." % src_file)
+                
+    if dirty and not overwrite:
+        print ("Run dgm update command")
+        
+
+def _retrieve_files(dgm):
+    for dirpath, dirnames, filenames in os.walk(dgm.server_path):
+        for filename in filenames:
+            dgm_file = os.path.join(dirpath,filename)
+            
+            #remove dgm root directory, then get its original file full path.
+            src_file = _get_src_file(dgm, dgm_file)
+            yield dgm_file, src_file
+            
+            
+def  _file_digest(filename):
+    digest = hashlib.md5()
+    
+    afile = open(filename,'r')
+    blocksize = 1024*10
+    buf = afile.read(blocksize)
+    while len(buf) > 0:
+        digest.update(buf)
+        buf = afile.read(blocksize)
+        
+    afile.close()
+    
+    return digest.digest()
 
 def _run_cmd_from_home(dgm, cmd):
     pwd = os.getcwd()
@@ -143,6 +211,11 @@ def _run_cmd_from_home(dgm, cmd):
     os.system(cmd)
     os.chdir(pwd)
     
+def _get_src_file(dgm, dgm_file):
+    src_file = os.path.relpath(dgm_file, dgm.server_path)
+    src_file = os.path.join(os.path.sep, src_file);
+        
+    return src_file
         
 class DGM:
     def __init__(self):
@@ -160,6 +233,10 @@ class DGM:
         #Add
         cmd_add_parser = subparsers.add_parser("add", help="Add file to local repository")
         cmd_add_parser.add_argument("filename", nargs='+')
+        
+        
+        #Update
+        subparsers.add_parser("update", help="Refresh all dgm with original files")
         
         #Commit
         cmd_commit_parser = subparsers.add_parser("commit", help="commit file to local repository")
