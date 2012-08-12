@@ -124,7 +124,7 @@ def _push(dgm):
 
 def _remote(dgm):
     """ Add remote repository as origin """
-    _run_cmd_from_home(dgm, "git remote add origin %s", dgm.args.r)
+    _run_cmd_from_home(dgm, "git remote add origin %s" % dgm.args.r)
 
 
 def _print(dgm):
