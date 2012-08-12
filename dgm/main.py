@@ -19,8 +19,8 @@ def _init(dgm):
         _stdout_error("DGM config is existed, it may be already initialised.")
         exit(0)
     
-    if dgm.args.l:
-        home_path = dgm.args.l
+    if dgm.args.d:
+        home_path = dgm.args.d
     else:
         home_path = os.getcwd()
         
@@ -257,7 +257,7 @@ class DGM:
         #Init
         cmd_init_parser = subparsers.add_parser("init", help="Init local repository")
         cmd_init_parser.add_argument("-s", help="server name", required=True)
-        cmd_init_parser.add_argument("-l", help="home directory - absolute path or start with tilde. If not preset, using current directory.")
+        cmd_init_parser.add_argument("-d", help="home directory - absolute path or start with tilde. If not preset, using current directory.")
         cmd_init_parser.add_argument("-r", help="remote git url")
         
         #Add
