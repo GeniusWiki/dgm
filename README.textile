@@ -1,3 +1,10 @@
+h2. Prerequisite
+Python +2.7 or +3.1
+
+h2. Installation
+sudo pip install git+https://github.com/GeniusWiki/dgm.git
+
+h2. Usage
 Initialise DGM repository under ~/xdev/dgm directory. Meanwhile, default DGM configuration file is created under user home directory ~/.dgm.
 
 dgm init -s ubuntu -d ~/xdev/dgm [-r gitRemoteURL]
