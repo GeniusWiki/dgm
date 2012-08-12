@@ -1,10 +1,13 @@
 h2. Prerequisite
+
 Python +2.7 or +3.1
 
 h2. Installation
+
 sudo pip install git+https://github.com/GeniusWiki/dgm.git
 
 h2. Usage
+
 Initialise DGM repository under ~/xdev/dgm directory. Meanwhile, default DGM configuration file is created under user home directory ~/.dgm.
 
 dgm init -s ubuntu -d ~/xdev/dgm [-r gitRemoteURL]
@@ -31,7 +34,8 @@ List how many files under DGM and DGM configuration  information.
 dgm print 
 
 
-TODO:
+h2. TODO:
+
 * Fetch and merge remote git (dgm pull & dgm checkout filename)
 * Group of servers, and manage files in group level 
 * Check-in and check-out in different server(?)
