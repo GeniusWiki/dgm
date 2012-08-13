@@ -1,3 +1,10 @@
+h2. Introduction
+
+A very simple tool to wrap some git commands to managed files distributed in different directories. The most possible scenario is, there are many configuration files which need to backup during server setup. 
+The basic idea is copying the files into a central directory and keep its original path information, then use git to add, commit and push.  
+
+Warning: This script is at very initial stage, lots TODOs. It may have security risks since all files are put into same directory, suggest use sudo on all commands.    
+
 h2. Prerequisite
 
 Python +2.7 or +3.1
@@ -10,7 +17,7 @@ h2. Usage
 
 Initialise DGM repository under ~/xdev/dgm directory. Meanwhile, default DGM configuration file is created under user home directory ~/.dgm.
 
-dgm init -s ubuntu -d ~/xdev/dgm [-r gitRemoteURL]
+dgm init -n ubuntu -d ~/xdev/dgm [-s gitRemoteURL]
 
 Add a file to DGM repository, file could be with relative or absolute path.
 /etc/init.d$ dgm add nagios3 
@@ -27,15 +34,22 @@ dgm commit -m'some comment'
 Push DGM repository to remote git. if not set gitRemoteURL, then use dgm remote -a to set before this command.
 dgm push
 
-Other command
-dgm remote -a gitRemoteURL
+Pull from remote git
+dgm pull
+
+Apply DGM managed file into local. This will overwrite local file without warning!!!
+dgm apply /etc/init.d/tomcat
+ 
+h3. Other command
+
+Add remote git URL - if it already has, failed.
+dgm remote -s gitRemoteURL
 
 List how many files under DGM and DGM configuration  information.
 dgm print 
 
-
 h2. TODO:
 
-* Fetch and merge remote git (dgm pull & dgm checkout filename)
+* Keep Permission on files and its full path directory.  
 * Group of servers, and manage files in group level 
 * Check-in and check-out in different server(?)
