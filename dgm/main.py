@@ -82,13 +82,10 @@ def _add(dgm):
             src_file_path = os.path.dirname(src_file)
             src_file_name = os.path.basename(src_file)
             
-            tgt_file_path = os.path.join(dgm.server_path, src_file_path.lstrip(os.sep))
-            if not os.path.exists(tgt_file_path):
-                #TODO: permission need copy from origin
-                os.makedirs(tgt_file_path, 0700)
+            tgt_file_path = _clone_dirs(dgm.server_path, src_file_path)
                 
             tgt_file = os.path.join(tgt_file_path, src_file_name)
-            shutil.copy(src_file, tgt_file)
+            _copy(src_file, tgt_file)
             
             _run_cmd_from_home(dgm, "git add %s" % tgt_file)
             
@@ -107,21 +104,22 @@ def _apply(dgm):
         src_file_path = os.path.dirname(src_file)
         src_file_name = os.path.basename(src_file)
         
-        tgt_file_path = os.path.join(dgm.server_path, src_file_path.lstrip(os.sep))
-        tgt_file = os.path.join(tgt_file_path, src_file_name)
-        if not os.path.exists(tgt_file):
-            _stdout_error("File %s does not exist in DGM repository" % tgt_file)
+        dgm_file_path = os.path.join(dgm.server_path, src_file_path.lstrip(os.sep))
+        dgm_file = os.path.join(dgm_file_path, src_file_name)
+        if not os.path.exists(dgm_file):
+            _stdout_error("File %s does not exist in DGM repository" % dgm_file)
             exit(1)
 
-        if os.path.isfile(tgt_file):
+        if os.path.isfile(dgm_file):
             if not os.path.exists(src_file_path):
-                #TODO: permission need copy from origin
-                os.makedirs(src_file_path, 0700)
+                #For safe reason, don't create source directory
+                _stdout_error("Directory %s does not exist, please create manually" % src_file_path)
+                exit(1)
             
-            shutil.copy(tgt_file, src_file)
-            _stdout_info("%s is applied" % tgt_file)
+            _copy(dgm_file, src_file)
+            _stdout_info("%s is applied" % dgm_file)
         else:
-            _stdout_error("DGM File %s is not file" % tgt_file)
+            _stdout_error("DGM File %s is not file" % dgm_file)
             
             
                 
@@ -232,7 +230,7 @@ def _compare_files(dgm, overwrite=False):
             dirty = True
             if overwrite:
                 _stdout_info ("File %s is update to dgm repository" % src_file)
-                shutil.copy(src_file, dgm_file)
+                _copy(src_file, dgm_file)
                 _run_cmd_from_home(dgm, "git add %s" % dgm_file)
             else:
                 _stdout_error("%s is modified but not updated to dgm yet." % src_file)
@@ -278,6 +276,22 @@ def _get_src_file(dgm, dgm_file):
         
     return src_file
 
+
+def _copy(src_file, tgt_file):
+    #is possible or useful to keep owner/group information here?
+    shutil.copy2(src_file, tgt_file)
+    
+def _clone_dirs(server_path, src_file_path):
+    """ Get  DGM directories. If directory does not exist """
+    
+    tgt_file_path = os.path.join(server_path, src_file_path.lstrip(os.sep))
+    if not os.path.exists(tgt_file_path):
+        #create it with src_dir with same owner and permissions
+        os.makedirs(tgt_file_path, 0700)
+        
+    return tgt_file_path
+
+  
 def _stdout(string):
     print(string)
     
