@@ -54,7 +54,7 @@ def _init(dgm):
         
     confParser = ConfigParser.ConfigParser()
     confParser.add_section("config")
-    confParser.set("config", "server_name", dgm.args.s)
+    confParser.set("config", "server_name", dgm.args.n)
     confParser.set("config", "home_path", home_path)
     confParser.set("config", "git_url", dgm.args.s)
     
