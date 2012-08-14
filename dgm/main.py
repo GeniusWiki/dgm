@@ -156,7 +156,7 @@ def _apply(dgm):
     exit(ret_code)
                     
 def _checkin(dgm):
-    """ Copy source files to DMG """
+    """ Copy source files to DGM """
     
     force = dgm.args.f
     is_all_files = _is_allfiles(dgm.args.filename)
@@ -179,15 +179,15 @@ def _checkin(dgm):
   
             overwrite = not os.path.exists(dgm_file)
             if not overwrite:
-                #DMG file exist, check if it is older than source
+                #DGM file exist, check if it is older than source
                 if _compare_file_mtime(src_file, dgm_file) > 0:
                     overwrite = True
                 elif not force and not is_all_files:
                     #if parameters is with real file names, then we need explicitly to tell user if the files are applied or not
                     if _compare_file_mtime(src_file, dgm_file) == 0:
-                        _stdout_error("%s DMG file is same than source file. Try use -f option." % src_file)
+                        _stdout_error("%s DGM file is same than source file. Try use -f option." % src_file)
                     else:
-                        _stdout_error("%s DMG file is newer than source file. Try use -f option or apply first." % src_file)
+                        _stdout_error("%s DGM file is newer than source file. Try use -f option or apply first." % src_file)
                     
             if force or overwrite:
                 _copy(src_file, dgm_file)
@@ -476,43 +476,43 @@ class DGM:
         subparsers = parser.add_subparsers(dest='command', help='Command help')
         
         #Init
-        cmd_init_parser = subparsers.add_parser("init", help="Init local repository")
+        cmd_init_parser = subparsers.add_parser("init", help="Init local DGM repository")
         cmd_init_parser.add_argument("-n", help="Server name", required=True)
         cmd_init_parser.add_argument("-d", help="Home directory - absolute path or start with tilde. If not preset, using current directory.")
         cmd_init_parser.add_argument("-s", help="Remote git  server url")
         
         #Add
-        cmd_add_parser = subparsers.add_parser("add", help="Add file to local repository")
+        cmd_add_parser = subparsers.add_parser("add", help="Add new files to local DGM repository")
         cmd_add_parser.add_argument("filename", nargs='+')
         
         
         #Checkin
-        cmd_checkin_parser = subparsers.add_parser("checkin", help="Copy source files into DMG")
+        cmd_checkin_parser = subparsers.add_parser("checkin", help="Check in source files into local DGM repository")
         cmd_checkin_parser.add_argument("-f", help="Force checkin local files to overwrite DGM files, even DGM file is newer than local file.", required=False, action='store_const', const=True)
         cmd_checkin_parser.add_argument("filename", nargs='+')
         
         #Commit
-        cmd_commit_parser = subparsers.add_parser("commit", help="commit file to local repository")
+        cmd_commit_parser = subparsers.add_parser("commit", help="Git commit in local DGM repository")
         cmd_commit_parser.add_argument('-m', help='comment', required=True)
         
         #Status
-        cmd_status_parser = subparsers.add_parser("status", help="Check status of local repository")
+        cmd_status_parser = subparsers.add_parser("status", help="Display status of local DGM repository")
         cmd_status_parser.add_argument("-a", help="List all fields in DGM repository and configuration information.", required=False, action='store_const', const=True)
         
         #Push
-        subparsers.add_parser("push", help="Push local repository master to remote")
+        subparsers.add_parser("push", help="Push local DGM repository master to remote git")
         
         #Pull
-        subparsers.add_parser("pull", help="Pull remote repository to local master")
+        subparsers.add_parser("pull", help="Pull remote git to local DGM repository")
         
         #Apply
-        cmd_apply_parser = subparsers.add_parser("apply", help="Copy DGM local repository file to overwrite the managed file")
+        cmd_apply_parser = subparsers.add_parser("apply", help="Copy source file from DGM local repository")
         cmd_apply_parser.add_argument("-f", help="Force overwrite local file from DGM, even local file is newer than DGM file.", required=False, action='store_const', const=True)
         cmd_apply_parser.add_argument("filename", nargs='+')
         
         
         #Remote
-        cmd_commit_parser = subparsers.add_parser("remote", help="Remote git management ")
+        cmd_commit_parser = subparsers.add_parser("remote", help="Add remote git URL ")
         cmd_commit_parser.add_argument('-s', help='Remote git URL', required=True)
 
         
