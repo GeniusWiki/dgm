@@ -1,8 +1,10 @@
 from argparse import ArgumentParser
 import ConfigParser,sys, os,shutil,hashlib
+from datetime import datetime, timedelta
 
 dgm_version="0.1"
-    
+
+
 def _init(dgm):
     """Create .dgm under user home directory. Also initial .dgm/config file """
     """TODO:
@@ -94,54 +96,152 @@ def _add(dgm):
                 
             _stdout_info("%s is added to DGM repository" % src_file)
         
+
+
 def _apply(dgm):
-    """Copy repository file to overwrite managed file"""
-    files = dgm.args.filename
-    for src_file in files:
-        if not src_file.startswith(os.sep):
-            src_file = os.path.join(os.getcwd(), src_file)
+    """Copy DGM file to overwrite source file"""
+    
+    force = dgm.args.f
+    is_all_files = _is_allfiles(dgm.args.filename)
+    dirty = False
+    for dgm_file, src_file in _processed_files(dgm):
             
-        src_file_path = os.path.dirname(src_file)
-        src_file_name = os.path.basename(src_file)
-        
-        dgm_file_path = os.path.join(dgm.server_path, src_file_path.lstrip(os.sep))
-        dgm_file = os.path.join(dgm_file_path, src_file_name)
         if not os.path.exists(dgm_file):
             _stdout_error("File %s does not exist in DGM repository" % dgm_file)
             exit(1)
 
         if os.path.isfile(dgm_file):
+            src_file_path = os.path.dirname(src_file)
             if not os.path.exists(src_file_path):
                 #For safe reason, don't create source directory
                 _stdout_error("Directory %s does not exist, please create manually" % src_file_path)
                 exit(1)
             
-            _copy(dgm_file, src_file)
-            _stdout_info("%s is applied" % dgm_file)
+            overwrite = not os.path.exists(src_file)
+            if not overwrite:
+                # Source file exist, check if it is older than DGM copy
+                if _compare_file_mtime(dgm_file, src_file) > 0:
+                    overwrite = True
+                elif not force and not is_all_files:
+                    #if parameters is with real file names, then we need explicitly to tell user if the files are applied or not 
+                    if _compare_file_mtime(dgm_file, src_file) == 0:
+                        _stdout_error("%s is same with DGM file. Try use -f option to force to apply." % src_file)
+                    else:
+                        _stdout_error("%s has updated before last checkin. Try use -f option to force to apply." % src_file)
+                    
+            if force or overwrite:
+                _copy(dgm_file, src_file)
+                _stdout_info("%s is applied." % src_file)
+                dirty = True
+            
         else:
-            _stdout_error("DGM File %s is not file" % dgm_file)
-            
-            
+            _stdout_error("DGM File %s is directory, only files are accepted." % dgm_file)
+            exit(1)
+
+    if not dirty:
+        _stdout_info("No file is applied")
+        
                 
-def _update(dgm):
-    """ Refresh all dgm with original files"""
-    _compare_files(dgm, True)
+def _checkin(dgm):
+    """ Copy source files to DMG """
     
+    force = dgm.args.f
+    is_all_files = _is_allfiles(dgm.args.filename)
+    dirty = False
+    
+    for dgm_file, src_file in _processed_files(dgm):
+            
+        if not os.path.exists(src_file):
+            _stdout_error("File %s does not exist" % src_file)
+            exit(1)
+
+        if os.path.isfile(src_file):
+  
+            overwrite = not os.path.exists(dgm_file)
+            if not overwrite:
+                #DMG file exist, check if it is older than source
+                if _compare_file_mtime(src_file, dgm_file) > 0:
+                    overwrite = True
+                elif not force and not is_all_files:
+                    #if parameters is with real file names, then we need explicitly to tell user if the files are applied or not
+                    if _compare_file_mtime(src_file, dgm_file) == 0:
+                        _stdout_error("%s DMG file is same than source file. Try use -f option." % src_file)
+                    else:
+                        _stdout_error("%s DMG file is newer than source file. Try use -f option or apply first." % src_file)
+                    
+            if force or overwrite:
+                _copy(src_file, dgm_file)
+                _stdout_info("%s is checked in." % dgm_file)
+                dirty = True
+        else:
+            _stdout_error("Source file %s is directory - DGM can not process in directory level" % src_file)
+            exit(1)
+    
+    if not dirty:
+        _stdout_info("No file is checked in")
+            
 def _commit(dgm):
     """ Commit change to local git repository """
     _run_cmd_from_home(dgm, "git commit -m'%s'" % dgm.args.m)
     
 def _status(dgm):
     """ Retrieve local repository status"""
-    _stdout("DGM repository status")
-    _stdout("=========================================")
-    dirty = _compare_files(dgm)
-    if not dirty:
-        _stdout_info("DGM managed files all synchronised with repository.")
     
-    _stdout ("")
-    _stdout("DGM git status")
-    _stdout("=========================================")
+    all_info = dgm.args.a
+    
+    count = 0
+    status_files = _compare_files(dgm)
+    files = status_files[FileStatus.src_notfound]
+    if files:
+        _stdout ("Source file missing:")
+        _stdout ("    Use dgm apply <file> to copy them from DGM repository")
+        _stdout ("  ")
+        for dgm_file, src_file in files:
+            _stdout_info ("- %s" % src_file)
+            count += 1
+            
+    files = status_files[FileStatus.dgm_newer]
+    if files:
+        _stdout ("DGM file is newer than source file:")
+        _stdout ("    Use dgm apply <file> to copy them from DGM repository")
+        _stdout ("  ")
+        for dgm_file, src_file in files:
+            _stdout_info ("+ %s" % src_file)
+            count += 1
+            
+    files = status_files[FileStatus.src_newer]
+    if files:
+        _stdout ("Source file is newer than DGM file:")
+        _stdout ("    Use dgm checkin <file> to put them into DGM repository")
+        _stdout ("  ")
+        for dgm_file, src_file in files:
+            _stdout_info ("* %s" % src_file)
+            count += 1
+        
+    if all_info:
+        files = status_files[FileStatus.same]
+        _stdout ("Files are  identical in DGM and source:")
+        _stdout ("  ")
+        for dgm_file, src_file in files:
+            _stdout_info ("= %s" % src_file)
+            count += 1
+        
+        _stdout(" ")
+        _stdout("Managed files: %i" % count)           
+        _stdout(" ")   
+        _stdout("Server configuration:")
+        _stdout(" ")   
+        _stdout_info ("Server name: [%s]" % dgm.server_name)
+        _stdout_info ("Home directory: [%s]" % dgm.home_path)
+        _stdout_info ("Home for server directory: [%s]" % dgm.server_path)
+        _stdout_info ("Git URL: [%s]" % dgm.git_url)
+    else:
+        if count == 0:
+            _stdout("All files are identical.")
+             
+    _stdout(" ")                     
+    _stdout(" ")                     
+    _stdout("DGM repository git status")
     _run_cmd_from_home(dgm, "git status")
 
 def _push(dgm):
@@ -173,24 +273,6 @@ def _remote(dgm):
     
     _run_cmd_from_home(dgm, "git remote add origin %s" % dgm.args.s)
 
-
-def _print(dgm):
-    _stdout("Server configration")
-    _stdout("======================================================")
-    _stdout_info ("Server name: [%s]" % dgm.server_name)
-    _stdout_info ("Home directory: [%s]" % dgm.home_path)
-    _stdout_info ("Home for server directory: [%s]" % dgm.server_path)
-    _stdout_info ("Git URL: [%s]" % dgm.git_url)
-    
-    _stdout("DGM repository information")
-    _stdout ("======================================================")
-    
-    file_count = 0
-    for dgm_file, src_file in _retrieve_files(dgm):
-        file_count += 1
-        _stdout_info(src_file)
-
-    _stdout_info("Managed files: %i" % file_count)
             
 def main():
     dgm = DGM()
@@ -205,40 +287,73 @@ def main():
         _commit(dgm)
     elif dgm.args.command == 'push':
         _push(dgm)
-    elif dgm.args.command == 'update':
-        _update(dgm)
+    elif dgm.args.command == 'checkin':
+        _checkin(dgm)
     elif dgm.args.command == 'remote':
         _remote(dgm)
     elif dgm.args.command == 'pull':
         _pull(dgm)
     elif dgm.args.command == 'apply':
         _apply(dgm)
-    elif dgm.args.command == 'print':
-        _print(dgm)
         
+def _processed_files(dgm):
+    files = dgm.args.filename
+    if _is_allfiles(files):
+        #All files
+        files =  (src_file for dgm_file, src_file in _retrieve_files(dgm))
+            
+    for src_file in files:
+        src_file = _canonical_file(src_file)
 
-def _compare_files(dgm, overwrite=False):
+        src_file_path = os.path.dirname(src_file)
+        src_file_name = os.path.basename(src_file)
+        
+        dgm_file_path = os.path.join(dgm.server_path, src_file_path.lstrip(os.sep))
+        dgm_file = os.path.join(dgm_file_path, src_file_name)
+        yield dgm_file, src_file
+
+def _compare_file_mtime(dgm_file, src_file):
+    """ Compare file modified time - Note, if use shuil.copy2(), the modified time may not accurate to microseconds as OS limitation.
+        Simply use os.path.getmtime() won't get correctly result. Here will compare mtime to seconds level.
+        
+        If return greater than 0, dgm_file > src_file
+        If return less than 0, dgm_file < src_file
+        If return equal 0, dgm_file == src_file
+    """  
+    
+    delta = datetime.fromtimestamp(os.path.getmtime(dgm_file)) - datetime.fromtimestamp(os.path.getmtime(src_file))
+    return int(delta.total_seconds())
+
+
+def _is_allfiles(files):
+    return ( len(files) == 1 and files[0] == '.' )
+                
+def _compare_files(dgm):
     """ Check all files under dgm managed, if they are different, then overwrite filename in dgm side.  
         So, this means, dgm managed files are not suppose to updated which will be overwritten even it is newer than original one"""
     
-    dirty = False
+    status_files = {FileStatus.src_notfound:[],FileStatus.same:[], FileStatus.dgm_newer:[], FileStatus.src_newer:[]}
+    
     for dgm_file, src_file in _retrieve_files(dgm):
-        dgm_digest = _file_digest(dgm_file)
-        src_digest = _file_digest(src_file)
-        
-        if dgm_digest != src_digest:
-            dirty = True
-            if overwrite:
-                _stdout_info ("File %s is update to dgm repository" % src_file)
-                _copy(src_file, dgm_file)
-                _run_cmd_from_home(dgm, "git add %s" % dgm_file)
+        if not os.path.exists(src_file):
+            status_files.get(FileStatus.src_notfound).append((dgm_file,src_file))
+        else:
+            #To keep consistent with check_in() and apply(), don't do digest comparison 
+#            dgm_digest = _file_digest(dgm_file)
+#            src_digest = _file_digest(src_file)
+#            if dgm_digest == src_digest:
+#                status_files.get(FileStatus.same).append((dgm_file,src_file))
+#            else:
+            
+            diff = _compare_file_mtime(dgm_file, src_file)
+            if diff  > 0:
+                status_files.get(FileStatus.dgm_newer).append((dgm_file,src_file))
+            elif diff == 0:
+                status_files.get(FileStatus.same).append((dgm_file,src_file))
             else:
-                _stdout_error("%s is modified but not updated to dgm yet." % src_file)
-                
-    if dirty and not overwrite:
-        _stdout_info("Run [dgm update] command to synchronise original to DGM repository")
-        
-    return dirty
+                status_files.get(FileStatus.src_newer).append((dgm_file,src_file))
+            
+    return status_files
 
 def _retrieve_files(dgm):
     for dirpath, dirnames, filenames in os.walk(dgm.server_path):
@@ -276,6 +391,13 @@ def _get_src_file(dgm, dgm_file):
         
     return src_file
 
+def _canonical_file(src_file):
+    if src_file.startswith("~"):
+        src_file = os.path.expanduser(src_file)
+    elif not src_file.startswith(os.sep):
+        src_file = os.path.join(os.getcwd(), src_file)
+    
+    return src_file
 
 def _copy(src_file, tgt_file):
     #is possible or useful to keep owner/group information here?
@@ -318,6 +440,9 @@ def _color_message(string, error=False, bold=False):
     if bold:
         attr.append('1')
     return '\x1b[%sm%s\x1b[0m' % (';'.join(attr), string)
+
+class FileStatus:
+    same, dgm_newer, src_newer, src_notfound = range(4)
         
 class DGM:
     def __init__(self):
@@ -338,15 +463,18 @@ class DGM:
         cmd_add_parser.add_argument("filename", nargs='+')
         
         
-        #Update
-        subparsers.add_parser("update", help="Refresh all dgm with original files")
+        #Checkin
+        cmd_checkin_parser = subparsers.add_parser("checkin", help="Copy source files into DMG")
+        cmd_checkin_parser.add_argument("-f", help="Force checkin local files to overwrite DGM files, even DGM file is newer than local file.", required=False, action='store_const', const=True)
+        cmd_checkin_parser.add_argument("filename", nargs='+')
         
         #Commit
         cmd_commit_parser = subparsers.add_parser("commit", help="commit file to local repository")
         cmd_commit_parser.add_argument('-m', help='comment', required=True)
         
         #Status
-        subparsers.add_parser("status", help="Check status of local repository")
+        cmd_status_parser = subparsers.add_parser("status", help="Check status of local repository")
+        cmd_status_parser.add_argument("-a", help="List all fields in DGM repository and configuration information.", required=False, action='store_const', const=True)
         
         #Push
         subparsers.add_parser("push", help="Push local repository master to remote")
@@ -356,15 +484,14 @@ class DGM:
         
         #Apply
         cmd_apply_parser = subparsers.add_parser("apply", help="Copy DGM local repository file to overwrite the managed file")
+        cmd_apply_parser.add_argument("-f", help="Force overwrite local file from DGM, even local file is newer than DGM file.", required=False, action='store_const', const=True)
         cmd_apply_parser.add_argument("filename", nargs='+')
         
         
         #Remote
         cmd_commit_parser = subparsers.add_parser("remote", help="Remote git management ")
         cmd_commit_parser.add_argument('-s', help='Remote git URL', required=True)
-        
-        #Print configuration
-        subparsers.add_parser("print", help="Print configuration options")
+
         
         self.args = parser.parse_args()
         

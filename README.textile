@@ -17,39 +17,37 @@ h2. Usage
 
 Initialise DGM repository under ~/xdev/dgm directory. Meanwhile, default DGM configuration file is created under user home directory ~/.dgm.
 
-dgm init -n ubuntu -d ~/xdev/dgm [-s gitRemoteURL]
+*dgm init -n ubuntu -d ~/xdev/dgm [-s gitRemoteURL]*
 
-Add a file to DGM repository, file could be with relative or absolute path.
-/etc/init.d$ dgm add nagios3 
-
+Add files to DGM repository, file could be with relative or absolute path.
+*dgm add [-init] nagios3 [ /etc/init.d/tomcat.sh  ~/nginx.conf]* 
+  -init: Used for first time to add file, after add, there is git commit immediately. Warning, commit will for all staging changes not this new added file.
+  
 Check DGM repository and git status 
-dgm status
+*dgm status [-a]*
+	-a: List all files in DGM repository and DGM configuration information.
 
 If any DGM files are updated but not synchronised to DGM repository(run dgm status to know this), run this command. 
-dgm update
-
+*dgm checkin [-f] <filenames or .>*  
+	-f Force to check into DGM even the DGM file is newer than source file
+	
 Commit DGM repository file into local git.
-dgm commit -m'some comment'
+*dgm commit -m'some comment'*
 
 Push DGM repository to remote git. if not set gitRemoteURL, then use dgm remote -a to set before this command.
-dgm push
+*dgm push*
 
 Pull from remote git
-dgm pull
+*dgm pull*
 
 Apply DGM managed file into local. This will overwrite local file without warning!!!
-dgm apply /etc/init.d/tomcat
- 
-h3. Other command
-
+*dgm apply [-f] <filenames or .>*
+ 	-f Force to overwrite source file from DGM repository even source file is newer than DGM file
+ 	 
 Add remote git URL - if it already has, failed.
-dgm remote -s gitRemoteURL
-
-List how many files under DGM and DGM configuration  information.
-dgm print 
+*dgm remote -s gitRemoteURL*
 
 h2. TODO:
-
-* Keep Permission on files and its full path directory.  
 * Group of servers, and manage files in group level 
 * Check-in and check-out in different server(?)
+* Keep owner information
