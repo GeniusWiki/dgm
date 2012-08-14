@@ -72,8 +72,7 @@ def _add(dgm):
     files = dgm.args.filename
     ret_code = 0
     for src_file in files:
-        if not src_file.startswith(os.sep):
-            src_file = os.path.join(os.getcwd(), src_file)
+        src_file = _canonical_file(src_file)
             
         if not os.path.exists(src_file):
             _stdout_error("File %s does not exist" % src_file)
@@ -116,7 +115,7 @@ def _apply(dgm):
     for dgm_file, src_file in _processed_files(dgm):
             
         if not os.path.exists(dgm_file):
-            _stdout_error("File %s does not exist in DGM repository" % dgm_file)
+            _stdout_error("File %s does not exist in DGM repository" % src_file)
             ret_code = 1
             continue
 
@@ -349,6 +348,14 @@ def _compare_file_mtime(dgm_file, src_file):
     return int(delta.total_seconds())
 
 
+
+def _canonical_file(src_file):
+    if src_file.startswith("~/"):
+        src_file = os.path.expanduser(src_file)
+    
+    return os.path.realpath(src_file) 
+
+    
 def _is_allfiles(files):
     return ( len(files) == 1 and files[0] == '.' )
                 
@@ -413,14 +420,6 @@ def _get_src_file(dgm, dgm_file):
     src_file = os.path.relpath(dgm_file, dgm.server_path)
     src_file = os.path.join(os.path.sep, src_file);
         
-    return src_file
-
-def _canonical_file(src_file):
-    if src_file.startswith("~"):
-        src_file = os.path.expanduser(src_file)
-    elif not src_file.startswith(os.sep):
-        src_file = os.path.join(os.getcwd(), src_file)
-    
     return src_file
 
 def _copy(src_file, tgt_file):
