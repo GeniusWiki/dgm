@@ -104,6 +104,38 @@ def _add(dgm):
 
     exit(ret_code)
 
+def _remove(dgm):
+    """Remove file form  local DGM repository . """
+    
+    files = dgm.args.filename
+    ret_code = 0
+    for src_file in files:
+        src_file = _canonical_file(src_file)
+            
+        #test if target path(home + current file absolute path) exist, if not, make it.
+        src_file_path = os.path.dirname(src_file)
+        src_file_name = os.path.basename(src_file)
+        
+        tgt_file_path = os.path.join(dgm.server_path, src_file_path.lstrip(os.sep))
+        tgt_file = os.path.join(tgt_file_path, src_file_name)
+        
+        if not os.path.exists(tgt_file):
+            _stdout_error("%s does not exist in DGM." % src_file)
+            ret_code = 1
+            continue
+        
+        if os.path.isfile(tgt_file):
+            os.remove(tgt_file)
+            
+            _run_cmd_from_home(dgm, "git rm %s" % tgt_file)
+                
+            _stdout_info("%s is removed DGM repository" % src_file)
+        else:
+            _stdout_error("%s is directory, only files are accepted." % src_file)    
+            ret_code = 1        
+
+    exit(ret_code)
+    
 def _apply(dgm):
     """Copy DGM file to overwrite source file"""
     
@@ -318,6 +350,8 @@ def main():
         _pull(dgm)
     elif dgm.args.command == 'apply':
         _apply(dgm)
+    elif dgm.args.command == 'rm':
+        _remove(dgm)
         
 def _processed_files(dgm):
     files = dgm.args.filename
@@ -509,6 +543,9 @@ class DGM:
         cmd_apply_parser.add_argument("-f", help="Force overwrite local file from DGM, even local file is newer than DGM file.", required=False, action='store_const', const=True)
         cmd_apply_parser.add_argument("filename", nargs='+')
         
+        #Remove 
+        cmd_remove_parser = subparsers.add_parser("rm", help="Remove new files to local DGM repository")
+        cmd_remove_parser.add_argument("filename", nargs='+')
         
         #Remote
         cmd_commit_parser = subparsers.add_parser("remote", help="Add remote git URL ")
