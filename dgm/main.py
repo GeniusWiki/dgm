@@ -68,16 +68,17 @@ def _init(dgm):
     
 def _add(dgm):
     """Copy file with original path to server path under current local repository . """
-    #if dgm.args.filename == '.':
     
     files = dgm.args.filename
+    ret_code = 0
     for src_file in files:
         if not src_file.startswith(os.sep):
             src_file = os.path.join(os.getcwd(), src_file)
             
         if not os.path.exists(src_file):
             _stdout_error("File %s does not exist" % src_file)
-            exit(1)
+            ret_code = 1
+            continue
         
         if os.path.isfile(src_file):
             #test if target path(home + current file absolute path) exist, if not, make it.
@@ -87,35 +88,45 @@ def _add(dgm):
             tgt_file_path = _clone_dirs(dgm.server_path, src_file_path)
                 
             tgt_file = os.path.join(tgt_file_path, src_file_name)
+            if os.path.exists(tgt_file):
+                _stdout_error("%s is already in DGM, run <dgm checkin> to check in file update." % src_file)
+                ret_code = 1
+                continue
+            
             _copy(src_file, tgt_file)
             
             _run_cmd_from_home(dgm, "git add %s" % tgt_file)
-            
-            if dgm.args.init:
-                _run_cmd_from_home(dgm, "git commit -m'Initial - %s'" % src_file)
+            _run_cmd_from_home(dgm, "git commit -m'Initial - %s'" % src_file)
                 
             _stdout_info("%s is added to DGM repository" % src_file)
-        
+        else:
+            _stdout_error("%s is directory, only files are accepted." % src_file)    
+            ret_code = 1        
 
+    exit(ret_code)
 
 def _apply(dgm):
     """Copy DGM file to overwrite source file"""
     
     force = dgm.args.f
     is_all_files = _is_allfiles(dgm.args.filename)
+    ret_code = 0
+    
     dirty = False
     for dgm_file, src_file in _processed_files(dgm):
             
         if not os.path.exists(dgm_file):
             _stdout_error("File %s does not exist in DGM repository" % dgm_file)
-            exit(1)
+            ret_code = 1
+            continue
 
         if os.path.isfile(dgm_file):
             src_file_path = os.path.dirname(src_file)
             if not os.path.exists(src_file_path):
                 #For safe reason, don't create source directory
                 _stdout_error("Directory %s does not exist, please create manually" % src_file_path)
-                exit(1)
+                ret_code = 1
+                continue
             
             overwrite = not os.path.exists(src_file)
             if not overwrite:
@@ -136,25 +147,34 @@ def _apply(dgm):
             
         else:
             _stdout_error("DGM File %s is directory, only files are accepted." % dgm_file)
-            exit(1)
+            ret_code = 1
+            continue
 
     if not dirty:
         _stdout_info("No file is applied")
         
-                
+    exit(ret_code)
+                    
 def _checkin(dgm):
     """ Copy source files to DMG """
     
     force = dgm.args.f
     is_all_files = _is_allfiles(dgm.args.filename)
     dirty = False
-    
+    ret_code = 0
+        
     for dgm_file, src_file in _processed_files(dgm):
             
         if not os.path.exists(src_file):
             _stdout_error("File %s does not exist" % src_file)
-            exit(1)
+            ret_code = 1
+            continue
 
+        if not os.path.exists(dgm_file):
+            _stdout_error("%s does not in  in DGM yet, run <dgm add> to add this file first." % src_file)
+            ret_code = 1
+            continue
+        
         if os.path.isfile(src_file):
   
             overwrite = not os.path.exists(dgm_file)
@@ -176,11 +196,14 @@ def _checkin(dgm):
                 dirty = True
         else:
             _stdout_error("Source file %s is directory - DGM can not process in directory level" % src_file)
-            exit(1)
+            ret_code = 1
+            continue
     
     if not dirty:
         _stdout_info("No file is checked in")
             
+    exit(ret_code)
+                
 def _commit(dgm):
     """ Commit change to local git repository """
     _run_cmd_from_home(dgm, "git commit -m'%s'" % dgm.args.m)
@@ -238,7 +261,7 @@ def _status(dgm):
         _stdout_info ("Git URL: [%s]" % dgm.git_url)
     else:
         if count == 0:
-            _stdout("All files are identical.")
+            _stdout_info("All files are synchronised.")
              
     _stdout(" ")                     
     _stdout(" ")                     
@@ -460,7 +483,6 @@ class DGM:
         
         #Add
         cmd_add_parser = subparsers.add_parser("add", help="Add file to local repository")
-        cmd_add_parser.add_argument("-init", help="First add this file, then commit immediately after add.", required=False, action='store_const', const=True)
         cmd_add_parser.add_argument("filename", nargs='+')
         
         

@@ -19,15 +19,15 @@ Initialise DGM repository under ~/xdev/dgm directory. Meanwhile, default DGM con
 
 *dgm init -n ubuntu -d ~/xdev/dgm [-s gitRemoteURL]*
 
-Add files to DGM repository, file could be with relative or absolute path.
-*dgm add [-init] nagios3 [ /etc/init.d/tomcat.sh  ~/nginx.conf]* 
-  -init: Used for first time to add file, after add, there is git commit immediately. Warning, commit will for all staging changes not this new added file.
+Add new files to DGM repository, file could be with relative or absolute path. After add, there is git commit immediately. Warning, commit will for all staging changes not this new added file.
+*dgm add nagios3 [ /etc/init.d/tomcat.sh  ~/nginx.conf]* 
+  
   
 Check DGM repository and git status 
 *dgm status [-a]*
 	-a: List all files in DGM repository and DGM configuration information.
 
-If any DGM files are updated but not synchronised to DGM repository(run dgm status to know this), run this command. 
+Copy source files to DGM repository. The files must already exited in DGM (dgm add command). 
 *dgm checkin [-f] <filenames or .>*  
 	-f Force to check into DGM even the DGM file is newer than source file
 	
