@@ -40,6 +40,9 @@ Push DGM repository to remote git. if not set gitRemoteURL, then use dgm remote 
 Pull from remote git
 *dgm pull*
 
+Rmove file from DGM repository
+*dgm rm nagios3 [ /etc/init.d/tomcat.sh  ~/nginx.conf]* 
+
 Apply DGM managed file into local. This will overwrite local file without warning!!!
 *dgm apply [-f] <filenames or .>*
  	-f Force to overwrite source file from DGM repository even source file is newer than DGM file
