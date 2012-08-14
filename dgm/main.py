@@ -171,6 +171,7 @@ def _checkin(dgm):
                     
             if force or overwrite:
                 _copy(src_file, dgm_file)
+                _run_cmd_from_home(dgm, "git add %s" % dgm_file)
                 _stdout_info("%s is checked in." % dgm_file)
                 dirty = True
         else:
