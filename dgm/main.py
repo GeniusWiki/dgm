@@ -567,6 +567,7 @@ class DGM:
         cmd_init_parser.add_argument("-n", help="Server name", required=True)
         cmd_init_parser.add_argument("-d", help="Home directory - absolute path or start with tilde. If not preset, using current directory.")
         cmd_init_parser.add_argument("-s", help="Remote git  server url")
+        cmd_init_parser.add_argument("-g", help="Group of servers. If '*' means all servers")
         
         #Add
         cmd_add_parser = subparsers.add_parser("add", help="Add new files to local DGM repository")
