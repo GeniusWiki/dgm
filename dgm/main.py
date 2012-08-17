@@ -59,6 +59,7 @@ def _init(dgm):
     confParser.set("config", "server_name", dgm.args.n)
     confParser.set("config", "home_path", home_path)
     confParser.set("config", "git_url", dgm.args.s)
+    confParser.set("config", "group", dgm.args.g)
     
     conf_file = open(conf, 'w')
     confParser.write(conf_file)
