@@ -445,7 +445,6 @@ def _compare_file_mtime(dgm_file, src_file):
     
     delta = datetime.fromtimestamp(os.path.getmtime(dgm_file)) - datetime.fromtimestamp(os.path.getmtime(src_file))
     
-    print "dbbug %s - %i " %(src_file, int(delta.total_seconds()))
     return int(delta.total_seconds())
 
 
