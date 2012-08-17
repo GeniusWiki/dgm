@@ -1,9 +1,11 @@
 h2. Introduction
 
-A very simple tool to wrap some git commands to managed files distributed in different directories. The most possible scenario is, there are many configuration files which need to backup during server setup. 
+A simple tool to wrap some git commands to managed files distributed in different directories. The most possible scenario is, there are many configuration files which need to backup during server setup. 
 The basic idea is copying the files into a central directory and keep its original path information, then use git to add, commit and push.  
 
-Warning: This script is at very initial stage, lots TODOs. It may have security risks since all files are put into same directory, suggest use sudo on all commands.    
+This script only test in Linux and OSX.
+
+Warning: It may have security risks since all files are put into same directory, suggest use sudo on all commands.    
 
 h2. Prerequisite
 
@@ -50,7 +52,10 @@ Apply DGM managed file into local. This will overwrite local file without warnin
 Add remote git URL - if it already has, failed.
 *dgm config [add -s gitRemoteURL]*
 	- Print DGM configuration information
-	- add git remote URL 
+	- add git remote URL - no implemented 
+
+*dgm diff <filenames>*
+
 
 h2. TODO:
 * Group of servers, and manage files in group level 
