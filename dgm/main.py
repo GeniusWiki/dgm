@@ -164,14 +164,24 @@ def _apply(dgm):
                 # Source file exist, check if it is older than DGM copy
                 if _compare_file_mtime(dgm_file, src_file) > 0:
                     overwrite = True
-                elif not force and not is_all_files:
-                    #if parameters is with real file names, then we need explicitly to tell user if the files are applied or not 
-                    if _compare_file_mtime(dgm_file, src_file) == 0:
+                elif _compare_file_mtime(dgm_file, src_file) == 0:
+                    #if unmodified file, only parameter has explicit filename with force flag, then update.  
+                    if force and not is_all_files: 
+                        overwrite = True
+                    elif not is_all_files:
+                        #if without force flag and  explicit filename, we need tell user this file is not updated because it is unmodified.
                         _stdout_error("%s is same with DGM file. Try use -f option to force to apply." % src_file)
+                        
+                    #if it wildcard file, keep silent in same file - we never copy unmodified file whatever force or not.
+                else:
+                    if force:
+                        overwrite = True
                     else:
+                        #if not force, source file is also newer than DGM file, we need tell user, this is dangerous to overwrite local change.  
                         _stdout_error("%s has updated before last checkin. Try use -f option to force to apply." % src_file)
+                        
                     
-            if force or overwrite:
+            if overwrite:
                 _copy(dgm_file, src_file)
                 _stdout_info("%s is applied." % src_file)
                 dirty = True
@@ -283,13 +293,6 @@ def _status(dgm):
         
         _stdout(" ")
         _stdout("Managed files: %i" % count)           
-        _stdout(" ")   
-        _stdout("Server configuration:")
-        _stdout(" ")   
-        _stdout_info ("Server name: [%s]" % dgm.server_name)
-        _stdout_info ("Home directory: [%s]" % dgm.home_path)
-        _stdout_info ("Home for server directory: [%s]" % dgm.server_path)
-        _stdout_info ("Git URL: [%s]" % dgm.git_url)
     else:
         if count == 0:
             _stdout_info("All files are synchronised.")
@@ -307,27 +310,41 @@ def _push(dgm):
         _stdout_error("No valid remote git URL set. Run [dgm remote -r {gitURL}] first")
         exit(1)
         
+
 def _pull(dgm):
     """ Pull remote to  local repository master """
     if dgm.git_url:
         _run_cmd_from_home(dgm, "git pull origin master")
+        
+        _clean_dgm(dgm)
     else:
         _stdout_error("No valid remote git URL set. Run [dgm remote -r {gitURL}] first")
         exit(1)
 
-def _remote(dgm):
+def _config(dgm):
     """ Add remote repository as origin """
-    confParser = ConfigParser.ConfigParser()
-    confParser.set("config", "git_url", dgm.args.s)
+    _clean_dgm(dgm)
+    #TODO: add/remove remote URL, Server etc.
+#    confParser = ConfigParser.ConfigParser()
+#    confParser.set("config", "git_url", dgm.args.s)
+#    
+#    conf_dir = os.path.expanduser("~/.dgm")
+#    conf = os.path.join(conf_dir, 'config')
+#    conf_file = open(conf, 'w')
+#    confParser.write(conf_file)
+#    conf_file.close()
+#    
+#    _run_cmd_from_home(dgm, "git remote add origin %s" % dgm.args.s)
     
-    conf_dir = os.path.expanduser("~/.dgm")
-    conf = os.path.join(conf_dir, 'config')
-    conf_file = open(conf, 'w')
-    confParser.write(conf_file)
-    conf_file.close()
+    _stdout(" ")   
+    _stdout("Server configuration:")
+    _stdout(" ")   
+    _stdout_info ("Server name: [%s]" % dgm.server_name)
+    _stdout_info ("Home directory: [%s]" % dgm.home_path)
+    _stdout_info ("Home for server directory: [%s]" % dgm.server_path)
+    _stdout_info ("Group: [%s]" % dgm.group)
+    _stdout_info ("Git URL: [%s]" % dgm.git_url)
     
-    _run_cmd_from_home(dgm, "git remote add origin %s" % dgm.args.s)
-
             
 def main():
     dgm = DGM()
@@ -344,8 +361,8 @@ def main():
         _push(dgm)
     elif dgm.args.command == 'checkin':
         _checkin(dgm)
-    elif dgm.args.command == 'remote':
-        _remote(dgm)
+    elif dgm.args.command == 'config':
+        _config(dgm)
     elif dgm.args.command == 'pull':
         _pull(dgm)
     elif dgm.args.command == 'apply':
@@ -369,6 +386,42 @@ def _processed_files(dgm):
         dgm_file = os.path.join(dgm_file_path, src_file_name)
         yield dgm_file, src_file
 
+
+def _clean_dgm(dgm):
+    """ Remove non-managed directory """
+    
+    #TODO: multiple server managed
+    if dgm.group == '*':
+        # all server
+        _reset_gitignore(dgm)
+    else:
+        # only current server
+        dirs = os.listdir(dgm.home_path)
+        
+        ignores = []
+        for rdir in dirs:
+            if os.path.isfile(os.path.join(dgm.home_path, rdir)): continue
+            if ".git" == rdir: continue
+            if "__metadata" == rdir: continue
+            if dgm.server_name == rdir: continue
+            
+            #A little dangerous...
+            shutil.rmtree(os.path.join(dgm.home_path, rdir))
+            ignores.append(rdir+os.path.sep+"*")
+            
+            _stdout_info("%s managed files is ignored..." % rdir)
+        _reset_gitignore(dgm, ignores)
+        
+def _reset_gitignore(dgm, ignores = None):
+    with open(os.path.join(dgm.home_path, ".gitignore"),'w+') as gitignore:
+        #always ignore itself
+        gitignore.write('.gitignore\n')
+        for ig in ignores:
+            gitignore.write('%s\n' % ig)
+        
+        
+        
+        
 def _compare_file_mtime(dgm_file, src_file):
     """ Compare file modified time - Note, if use shuil.copy2(), the modified time may not accurate to microseconds as OS limitation.
         Simply use os.path.getmtime() won't get correctly result. Here will compare mtime to seconds level.
@@ -547,9 +600,11 @@ class DGM:
         cmd_remove_parser = subparsers.add_parser("rm", help="Remove new files to local DGM repository")
         cmd_remove_parser.add_argument("filename", nargs='+')
         
-        #Remote
-        cmd_commit_parser = subparsers.add_parser("remote", help="Add remote git URL ")
-        cmd_commit_parser.add_argument('-s', help='Remote git URL', required=True)
+        #Config
+        cmd_config_parser = subparsers.add_parser("config", help="Config")
+#        config_subparsers = cmd_config_parser.add_subparsers(dest='Config command', help='Config command help')
+#        config_add_parser = config_subparsers.add_parser("add", help="Add config options")
+#        config_add_parser.add_argument('-s', help='Add or remove git remote URL', required=False)
 
         
         self.args = parser.parse_args()
@@ -559,12 +614,14 @@ class DGM:
         if os.path.exists(conf_file) and os.path.isfile(conf_file):
             confParser = ConfigParser.ConfigParser()
             confParser.read(conf_file)
-            self.server_name = confParser.get('config', 'server_name');
-            self.home_path = confParser.get('config', 'home_path')
+            self.server_name = confParser.get('config', 'server_name').strip();
+            self.home_path = confParser.get('config', 'home_path').strip()
             try:
                 self.git_url = confParser.get('config', 'git_url')
             except ConfigParser.NoOptionError:
                 self.git_url = None
+            
+            self.group  = confParser.get('config', 'group');
             
             #other variables
             self.meta_path = os.path.join(self.home_path, "__metadata")
