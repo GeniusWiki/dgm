@@ -25,7 +25,7 @@ Add new files to DGM repository, file could be with relative or absolute path. A
   
 Check DGM repository and git status 
 *dgm status [-a]*
-	-a: List all files in DGM repository and DGM configuration information.
+	-a: List all files in DGM repository
 
 Copy source files to DGM repository. The files must already exited in DGM (dgm add command). 
 *dgm checkin [-f] <filenames or .>*  
@@ -48,7 +48,9 @@ Apply DGM managed file into local. This will overwrite local file without warnin
  	-f Force to overwrite source file from DGM repository even source file is newer than DGM file
  	 
 Add remote git URL - if it already has, failed.
-*dgm remote -s gitRemoteURL*
+*dgm config [add -s gitRemoteURL]*
+	- Print DGM configuration information
+	- add git remote URL 
 
 h2. TODO:
 * Group of servers, and manage files in group level 
