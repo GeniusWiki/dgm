@@ -196,7 +196,15 @@ def _apply(dgm):
         _stdout_info("No file is applied")
         
     exit(ret_code)
-                    
+
+def _diff(dgm):
+    """ Copy source files to DGM """
+    
+    for dgm_file, src_file in _processed_files(dgm):
+        _stdout_info("diff %s " % src_file)
+        _run_cmd_from_home(dgm, "diff  %s %s" % (dgm_file, src_file)) 
+        
+
 def _checkin(dgm):
     """ Copy source files to DGM """
     
@@ -324,7 +332,7 @@ def _pull(dgm):
 
 def _config(dgm):
     """ Add remote repository as origin """
-    _clean_dgm(dgm)
+    
     #TODO: add/remove remote URL, Server etc.
 #    confParser = ConfigParser.ConfigParser()
 #    confParser.set("config", "git_url", dgm.args.s)
@@ -370,6 +378,8 @@ def main():
         _apply(dgm)
     elif dgm.args.command == 'rm':
         _remove(dgm)
+    elif dgm.args.command == 'diff':
+        _diff(dgm)
         
 def _processed_files(dgm):
     files = dgm.args.filename
@@ -417,8 +427,9 @@ def _reset_gitignore(dgm, ignores = None):
     with open(os.path.join(dgm.home_path, ".gitignore"),'w+') as gitignore:
         #always ignore itself
         gitignore.write('.gitignore\n')
-        for ig in ignores:
-            gitignore.write('%s\n' % ig)
+        if ignores:
+            for ig in ignores:
+                gitignore.write('%s\n' % ig)
         
         
         
@@ -573,6 +584,9 @@ class DGM:
         cmd_add_parser = subparsers.add_parser("add", help="Add new files to local DGM repository")
         cmd_add_parser.add_argument("filename", nargs='+')
         
+        #diff
+        cmd_diff_parser = subparsers.add_parser("diff", help="Diff files to local DGM repository")
+        cmd_diff_parser.add_argument("filename", nargs='*', default='.')
         
         #Checkin
         cmd_checkin_parser = subparsers.add_parser("checkin", help="Check in source files into local DGM repository")
