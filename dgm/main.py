@@ -417,7 +417,7 @@ def _clean_dgm(dgm):
             if dgm.server_name == rdir: continue
             
             #A little dangerous...
-            shutil.rmtree(os.path.join(dgm.home_path, rdir))
+            #shutil.rmtree(os.path.join(dgm.home_path, rdir))
             ignores.append(rdir+os.path.sep+"*")
             
             _stdout_info("%s managed files is ignored..." % rdir)
