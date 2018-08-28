@@ -1,6 +1,11 @@
 from argparse import ArgumentParser
-import ConfigParser,sys, os,shutil,hashlib
-from datetime import datetime, timedelta
+from datetime import datetime
+
+import ConfigParser
+import hashlib
+import os
+import shutil
+import sys
 
 dgm_version="0.1"
 
@@ -14,7 +19,7 @@ def _init(dgm):
     
     conf_dir = os.path.expanduser("~/.dgm")
     if not os.path.exists(conf_dir):
-        os.makedirs(conf_dir, 0700)
+        os.makedirs(conf_dir, 0o700)
         
     conf = os.path.join(conf_dir, 'config')
     if os.path.exists(conf):
@@ -30,7 +35,7 @@ def _init(dgm):
         home_path = os.path.expanduser(home_path)
         
     if not os.path.exists(home_path):
-        os.makedirs(home_path, 0700)
+        os.makedirs(home_path, 0o700)
         
     if not os.path.isdir(home_path):
         _stdout_error ("Home directory is not valid directory")
@@ -203,7 +208,7 @@ def _diff(dgm):
     for dgm_file, src_file in _processed_files(dgm):
         _stdout_info("diff %s " % src_file)
         _run_cmd_from_home(dgm, "diff  %s %s" % (dgm_file, src_file)) 
-        
+
 
 def _checkin(dgm):
     """ Copy source files to DGM """
@@ -251,6 +256,9 @@ def _checkin(dgm):
     
     if not dirty:
         _stdout_info("No file is checked in")
+    else:
+        if not dgm.args.ic:
+            _run_cmd_from_home(dgm, "git commit -m'Auto commit at %s'" % datetime.now())
             
     exit(ret_code)
                 
@@ -265,15 +273,7 @@ def _status(dgm):
     
     count = 0
     status_files = _compare_files(dgm)
-    files = status_files[FileStatus.src_notfound]
-    if files:
-        _stdout ("Source file missing:")
-        _stdout ("    Use dgm apply <file> to copy them from DGM repository")
-        _stdout ("  ")
-        for dgm_file, src_file in files:
-            _stdout_info ("- %s" % src_file)
-            count += 1
-            
+
     files = status_files[FileStatus.dgm_newer]
     if files:
         _stdout ("DGM file is newer than source file:")
@@ -293,6 +293,15 @@ def _status(dgm):
             count += 1
         
     if all_info:
+        files = status_files[FileStatus.src_notfound]
+        if files:
+            _stdout("Source file missing:")
+            _stdout("    Use dgm apply <file> to copy them from DGM repository")
+            _stdout("  ")
+            for dgm_file, src_file in files:
+                _stdout_error("- %s" % src_file)
+                count += 1
+
         files = status_files[FileStatus.same]
         _stdout ("Files are  identical in DGM and source:")
         _stdout ("  ")
@@ -380,6 +389,8 @@ def main():
         _remove(dgm)
     elif dgm.args.command == 'diff':
         _diff(dgm)
+    elif dgm.args.command == 'update':
+        _update(dgm)
         
 def _processed_files(dgm):
     files = dgm.args.filename
@@ -532,7 +543,7 @@ def _clone_dirs(server_path, src_file_path):
     tgt_file_path = os.path.join(server_path, src_file_path.lstrip(os.sep))
     if not os.path.exists(tgt_file_path):
         #create it with src_dir with same owner and permissions
-        os.makedirs(tgt_file_path, 0700)
+        os.makedirs(tgt_file_path, 0o700)
         
     return tgt_file_path
 
@@ -588,19 +599,20 @@ class DGM:
         #diff
         cmd_diff_parser = subparsers.add_parser("diff", help="Diff files to local DGM repository")
         cmd_diff_parser.add_argument("filename", nargs='*', default='.')
-        
+
+        # Status
+        cmd_status_parser = subparsers.add_parser("status", help="Display status of local DGM repository")
+        cmd_status_parser.add_argument("-a", help="List all fields in DGM repository and configuration information.", required=False, action='store_const', const=True)
+
         #Checkin
-        cmd_checkin_parser = subparsers.add_parser("checkin", help="Check in source files into local DGM repository")
+        cmd_checkin_parser = subparsers.add_parser("checkin", help="Check in source files into local DGM repository and commit")
         cmd_checkin_parser.add_argument("-f", help="Force checkin local files to overwrite DGM files, even DGM file is newer than local file.", required=False, action='store_const', const=True)
+        cmd_checkin_parser.add_argument("-ic", help="Only update DMG file without commit.", required=False, action='store_const', const=True)
         cmd_checkin_parser.add_argument("filename", nargs='+')
         
         #Commit
         cmd_commit_parser = subparsers.add_parser("commit", help="Git commit in local DGM repository")
         cmd_commit_parser.add_argument('-m', help='comment', required=True)
-        
-        #Status
-        cmd_status_parser = subparsers.add_parser("status", help="Display status of local DGM repository")
-        cmd_status_parser.add_argument("-a", help="List all fields in DGM repository and configuration information.", required=False, action='store_const', const=True)
         
         #Push
         subparsers.add_parser("push", help="Push local DGM repository master to remote git")
