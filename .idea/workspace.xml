@@ -19,8 +19,8 @@
       <file leaf-file-name="main.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/dgm/main.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="564">
-              <caret line="421" column="40" selection-start-line="421" selection-start-column="40" selection-end-line="421" selection-end-column="40" />
+            <state relative-caret-position="197">
+              <caret line="408" column="8" selection-start-line="408" selection-start-column="8" selection-end-line="408" selection-end-column="8" />
               <folding>
                 <element signature="e#0#35#0" expanded="true" />
               </folding>
@@ -87,6 +87,7 @@
       <find>checkin .</find>
       <find>_stdout</find>
       <find>check in</find>
+      <find>monitored_directories</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -227,13 +228,6 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <breakpoints>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/dgm/main.py</url>
-          <line>422</line>
-          <option name="timeStamp" value="17" />
-        </line-breakpoint>
-      </breakpoints>
       <breakpoints-dialog>
         <breakpoints-dialog />
       </breakpoints-dialog>
@@ -270,8 +264,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/dgm/main.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="564">
-          <caret line="421" column="40" selection-start-line="421" selection-start-column="40" selection-end-line="421" selection-end-column="40" />
+        <state relative-caret-position="197">
+          <caret line="408" column="8" selection-start-line="408" selection-start-column="8" selection-end-line="408" selection-end-column="8" />
           <folding>
             <element signature="e#0#35#0" expanded="true" />
           </folding>

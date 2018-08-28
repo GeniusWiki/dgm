@@ -404,7 +404,9 @@ def _config(dgm):
 
 def _add_directory(dgm, dir):
 
-    dgm.monitored_directories.append(dir)
+    if dir not in dgm.monitored_directories:
+        dgm.monitored_directories.append(dir)
+        
     conf_file = os.path.join(os.path.expanduser("~/.dgm"), 'config')
     confParser = ConfigParser.ConfigParser()
     confParser.read(conf_file)
