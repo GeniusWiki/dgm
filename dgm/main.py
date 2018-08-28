@@ -321,7 +321,7 @@ def _status(dgm):
         _stdout("Managed files: %i" % count)           
     else:
         if count == 0:
-            _stdout_info("All files are synchronised.")
+            _stdout_info("All DGM filesdg are synchronised.")
              
     _stdout(" ")                     
     _stdout(" ")                     
@@ -589,7 +589,7 @@ class DGM:
         
         #Read input args
         parser = ArgumentParser(prog='dgm', description='Distribute file git management.')
-        subparsers = parser.add_subparsers(dest='command', help='Command help')
+        subparsers = parser.add_subparsers(dest='command', help='Command help', default='status')
         
         #Init
         cmd_init_parser = subparsers.add_parser("init", help="Init local DGM repository")
