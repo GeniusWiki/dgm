@@ -245,13 +245,13 @@ def _checkin(dgm, auto_add=False):
     dirty = False
     ret_code = 0
     for dgm_file, src_file in _processed_files(dgm):
-        if not os.path.isfile(src_file):
-            _checkin_dir(dgm, src_file)
-            continue
-
         if not os.path.exists(src_file):
             _stdout_error("File %s does not exist" % src_file)
             ret_code = 1
+            continue
+
+        if not os.path.isfile(src_file):
+            _checkin_dir(dgm, src_file)
             continue
 
         if not auto_add and not os.path.exists(dgm_file):
