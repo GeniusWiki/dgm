@@ -229,6 +229,9 @@ def _list_dir_files(dgm, src_dir):
         fl = os.path.join(src_dir, fl)
         if os.path.isfile(fl):
             dir_files.append(fl)
+        else:
+            dir_files.extend(_list_dir_files(dgm, fl))
+            
     return dir_files
 
 

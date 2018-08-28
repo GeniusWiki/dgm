@@ -15,6 +15,14 @@ h2. Installation
 
 sudo pip install git+https://github.com/GeniusWiki/dgm.git
 
+h2. Quick start
+
+dgm add file_name
+dgm monitor dir_name
+dgm checkin .
+dgm status
+
+
 h2. Usage
 
 Initialise DGM repository under ~/xdev/dgm directory. Meanwhile, default DGM configuration file is created under user home directory ~/.dgm.
