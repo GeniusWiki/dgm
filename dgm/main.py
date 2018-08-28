@@ -299,7 +299,7 @@ def _checkin(dgm, auto_add=False):
                 # DGM file exist, check if it is older than source
                 if _compare_file_mtime(src_file, dgm_file) > 0:
                     overwrite = True
-                elif (not force and not is_all_files) or not auto_add:
+                elif not force and not is_all_files and not auto_add:
                     # if parameters is with real file names, then we need explicitly to tell user if the files are applied or not
                     if _compare_file_mtime(src_file, dgm_file) == 0:
                         _stdout_error("%s DGM file is same than source file. Try use -f option." % src_file)
