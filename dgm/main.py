@@ -384,7 +384,7 @@ def _add_directory(dgm, dir):
 
     confParser = ConfigParser.ConfigParser()
     confParser.read(conf_file)
-    confParser['monitored_directories'] = json.dumps(dgm.monitored_directories)
+    confParser.set('monitored_directories', json.dumps(dgm.monitored_directories))
     with open(conf_file, 'w') as f:
         confParser.write(f)
 
