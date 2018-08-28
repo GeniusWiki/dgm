@@ -6,8 +6,9 @@ import hashlib
 import os
 import shutil
 import sys
+import json
 
-dgm_version="0.1"
+dgm_version="0.2"
 
 
 def _init(dgm):
@@ -72,6 +73,14 @@ def _init(dgm):
     
     _stdout_info("Initialise DGM repository successfully.")
     
+
+def _monitor(dgm):
+    """ Add directory to DGM - don't support recursive to child directories yet """
+    for src_dir in dgm.args.dirname:
+        src_dir = _canonical_file(src_dir)
+        self._add_directory(src_dir)
+
+
 def _add(dgm):
     """Copy file with original path to server path under current local repository . """
     
@@ -105,11 +114,8 @@ def _add(dgm):
                 
             _stdout_info("%s is added to DGM repository" % src_file)
         else:
-            if src_file.endswith('/'):
-                _stdout_info('Directory %s is added to DGM' % src_file)
-            else:
-                _stdout_error("%s is directory, it must ends with '/'." % src_file)    
-                ret_code = 1        
+            _stdout_error("%s is directory, Using `dgm monitor` instead." % src_file)    
+            ret_code = 1        
 
     exit(ret_code)
 
@@ -371,7 +377,18 @@ def _config(dgm):
     _stdout_info ("Group: [%s]" % dgm.group)
     _stdout_info ("Git URL: [%s]" % dgm.git_url)
     
-            
+
+def _add_directory(dir):
+
+    conf_file = os.path.join(os.path.expanduser("~/.dgm"), 'config')
+
+    confParser = ConfigParser.ConfigParser()
+    confParser.read(conf_file)
+    confParser['monitored_directories'] = json.dumps(self.monitored_directories)
+    with open(conf_file, 'w') as f:
+        confParser.write(f)
+
+
 def main():
     dgm = DGM()
     
@@ -395,9 +412,11 @@ def main():
         _remove(dgm)
     elif dgm.args.command == 'diff':
         _diff(dgm)
-    else:
+    elif dgm.args.command == 'status':
         _status(dgm)
-        
+    elif dgm.args.command == 'monitor':
+        _monitor(dgm)
+
 def _processed_files(dgm):
     files = dgm.args.filename
     if _is_allfiles(files):
@@ -602,6 +621,9 @@ class DGM:
         cmd_add_parser = subparsers.add_parser("add", help="Add new files to local DGM repository")
         cmd_add_parser.add_argument("filename", nargs='+')
         
+        cmd_monitor_parser = subparsers.add_parser("monitor", help="Add directory to local DGM repository")
+        cmd_monitor_parser.add_argument("dirname", nargs='+')
+
         #diff
         cmd_diff_parser = subparsers.add_parser("diff", help="Diff files to local DGM repository")
         cmd_diff_parser.add_argument("filename", nargs='*', default='.')
@@ -649,14 +671,18 @@ class DGM:
         if os.path.exists(conf_file) and os.path.isfile(conf_file):
             confParser = ConfigParser.ConfigParser()
             confParser.read(conf_file)
-            self.server_name = confParser.get('config', 'server_name').strip();
+            self.server_name = confParser.get('config', 'server_name').strip()
             self.home_path = confParser.get('config', 'home_path').strip()
             try:
                 self.git_url = confParser.get('config', 'git_url')
             except ConfigParser.NoOptionError:
                 self.git_url = None
             
-            self.group  = confParser.get('config', 'group');
+            self.group  = confParser.get('config', 'group')
+            md = confParser.get('config', 'monitored_directories')
+            if not md:
+                md = []
+            self.monitored_directories  = json.loads(md)
             
             #other variables
             self.meta_path = os.path.join(self.home_path, "__metadata")
