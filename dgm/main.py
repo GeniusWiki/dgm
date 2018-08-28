@@ -447,7 +447,7 @@ def _processed_files(dgm):
         #All files
         files =  (src_file for dgm_file, src_file in _retrieve_files(dgm))
         for src_dir in dgm.monitored_directories:
-            files.extend(_list_dir_files(dgm, src_dir))
+            files.extends(_list_dir_files(dgm, src_dir))
 
     for src_file in files:
         src_file = _canonical_file(src_file)
