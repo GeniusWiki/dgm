@@ -274,10 +274,13 @@ def _checkin(dgm, auto_add=False):
     is_all_files = _is_allfiles(dgm.args.filename)
     dirty = False
     ret_code = 0
+
+    if is_all_files:
+        for src_dir in dgm.monitored_directories:
+            _checkin_dir(dgm, src_dir)
+
     for dgm_file, src_file in _processed_files(dgm):
         if not os.path.exists(src_file):
-            _stdout_error("File %s does not exist" % src_file)
-            ret_code = 1
             continue
 
         if not os.path.isfile(src_file):
@@ -462,8 +465,6 @@ def _processed_files(dgm):
     if _is_allfiles(files):
         #All files
         files =  [src_file for dgm_file, src_file in _retrieve_files(dgm)]
-        for src_dir in dgm.monitored_directories:
-            files.extend(_list_dir_files(dgm, src_dir))
 
     for src_file in files:
         src_file = _canonical_file(src_file)
