@@ -9,7 +9,6 @@ import sys
 import json
 
 dgm_version="0.2"
-IGNORE_FILES = ['.DS_Store']
 
 def _init(dgm):
     """Create .dgm under user home directory. Also initial .dgm/config file """
@@ -66,7 +65,8 @@ def _init(dgm):
     confParser.set("config", "home_path", home_path)
     confParser.set("config", "git_url", dgm.args.s)
     confParser.set("config", "group", dgm.args.g)
-    
+    confParser.set("config", "ignore_files", json.dumps(['.DS_Store']))
+
     conf_file = open(conf, 'w')
     confParser.write(conf_file)
     conf_file.close()
@@ -219,18 +219,21 @@ def _diff(dgm):
         _run_cmd_from_home(dgm, "diff  %s %s" % (dgm_file, src_file)) 
 
 
-def _checkin_dir(dgm, src_dir):
+def _list_dir_files(dgm, src_dir):
     dir_files = []
     src_files = os.listdir(src_dir)
     for fl in src_files:
-        if fl in IGNORE_FILES:
+        if fl in dgm.ignore_files:
             continue
 
         fl = os.path.join(src_dir, fl)
         if os.path.isfile(fl):
             dir_files.append(fl)
+    return dir_files
 
-    dgm.args.filename = dir_files
+
+def _checkin_dir(dgm, src_dir):
+    dgm.args.filename = _list_dir_files(dgm, src_dir)
     _checkin(dgm, auto_add=True)
 
 
@@ -287,8 +290,6 @@ def _checkin(dgm, auto_add=False):
             _run_cmd_from_home(dgm, "git commit -m'Auto commit at %s'" % datetime.now())
 
     exit(ret_code)
-
-
 
                 
 def _commit(dgm):
@@ -408,6 +409,9 @@ def _add_directory(dgm, dir):
     with open(conf_file, 'w') as f:
         confParser.write(f)
 
+    _stdout_info("These files will be add to DGM after next `dgm checkin .` is executed: ")
+    for fl in _list_dir_files(dgm, dir):
+        _stdout_info(fl)
 
 def main():
     dgm = DGM()
@@ -442,7 +446,9 @@ def _processed_files(dgm):
     if _is_allfiles(files):
         #All files
         files =  (src_file for dgm_file, src_file in _retrieve_files(dgm))
-            
+        for src_dir in dgm.monitored_directories:
+            files.extend(_list_dir_files(dgm, src_dir))
+
     for src_file in files:
         src_file = _canonical_file(src_file)
 
@@ -704,10 +710,17 @@ class DGM:
                 self.monitored_directories = json.loads(md)
             except ConfigParser.NoOptionError:
                 self.monitored_directories = []
-            
+
+            try:
+                ig = confParser.get('config', 'ignore_files')
+                self.ignore_files = json.loads(ig)
+            except ConfigParser.NoOptionError:
+                self.ignore_files = []
+
             #other variables
             self.meta_path = os.path.join(self.home_path, "__metadata")
             self.server_path = os.path.join(self.home_path, self.server_name)
+
         else:
             if self.args.command != 'init':
                 _stdout_info("Run init command first")
