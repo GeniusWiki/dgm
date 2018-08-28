@@ -86,10 +86,9 @@ def _monitor(dgm):
                 _stdout(fl)
 
     _stdout_info(" ")
-    _stdout_info("Do you want to add these files to DGM? (y|yes)")
     _stdout_info(" ")
 
-    input_str = sys.stdin.read()
+    input_str = input("Do you want to add these files to DGM? (y|yes)")
     input_str = input_str.strip()
 
     if input_str.lower() == 'y' or input_str.lower() == 'yes':
