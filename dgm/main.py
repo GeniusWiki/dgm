@@ -78,7 +78,34 @@ def _monitor(dgm):
     """ Add directory to DGM - don't support recursive to child directories yet """
     for src_dir in dgm.args.dirname:
         src_dir = _canonical_file(src_dir)
-        _add_directory(dgm, src_dir)
+
+        if src_dir not in dgm.monitored_directories:
+            dgm.monitored_directories.append(src_dir)
+
+            for fl in _list_dir_files(dgm, src_dir):
+                _stdout(fl)
+
+    _stdout_info(" ")
+    _stdout_info("Do you want to add these files to DGM? (y|yes)")
+    _stdout_info(" ")
+
+    input_str = sys.stdin.read()
+    input_str = input_str.strip()
+
+    if input_str.lower() == 'y' or input_str.lower() == 'yes':
+        # checkin all files
+        dgm.args.f = True  # focus update
+        dgm.args.ic = False  # auto commit
+        for src_dir in dgm.args.dirname:
+            _checkin_dir(dgm, src_dir)
+
+        # update conf
+        conf_file = os.path.join(os.path.expanduser("~/.dgm"), 'config')
+        confParser = ConfigParser.ConfigParser()
+        confParser.read(conf_file)
+        confParser.set("config", 'monitored_directories', json.dumps(dgm.monitored_directories))
+        with open(conf_file, 'w') as f:
+            confParser.write(f)
 
 
 def _add(dgm):
@@ -220,6 +247,7 @@ def _diff(dgm):
 
 
 def _list_dir_files(dgm, src_dir):
+    src_dir = _canonical_file(src_dir)
     dir_files = []
     src_files = os.listdir(src_dir)
     for fl in src_files:
@@ -402,30 +430,6 @@ def _config(dgm):
     _stdout_info ("Git URL: [%s]" % dgm.git_url)
     
 
-def _add_directory(dgm, dir):
-
-    if dir not in dgm.monitored_directories:
-        dgm.monitored_directories.append(dir)
-        
-    conf_file = os.path.join(os.path.expanduser("~/.dgm"), 'config')
-    confParser = ConfigParser.ConfigParser()
-    confParser.read(conf_file)
-    confParser.set("config", 'monitored_directories', json.dumps(dgm.monitored_directories))
-    with open(conf_file, 'w') as f:
-        confParser.write(f)
-
-    for fl in _list_dir_files(dgm, dir):
-        _stdout(fl)
-
-    _stdout_info(" ")
-    _stdout_info("Do you want to add these files to DGM? (y|yes)")
-    _stdout_info(" ")
-
-    input_str = sys.stdin.read().strip()
-    if input_str.lower() == 'y' or input_str.lower() == 'yes':
-        _checkin_dir(dgm, dir)
-
-
 def main():
     dgm = DGM()
     
@@ -599,6 +603,10 @@ def _get_src_file(dgm, dgm_file):
 
 def _copy(src_file, tgt_file):
     #is possible or useful to keep owner/group information here?
+    tgt_path = os.path.dirname(tgt_file)
+    if not os.path.exists(tgt_path):
+        os.makedirs(tgt_path)
+
     shutil.copy2(src_file, tgt_file)
     
 def _clone_dirs(server_path, src_file_path):
