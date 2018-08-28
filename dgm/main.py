@@ -681,10 +681,10 @@ class DGM:
             self.group  = confParser.get('config', 'group')
             try:
                 md = confParser.get('config', 'monitored_directories')
+                self.monitored_directories = json.loads(md)
             except ConfigParser.NoOptionError:
-                md = []
-
-            self.monitored_directories  = json.loads(md)
+                self.monitored_directories = []
+            
             #other variables
             self.meta_path = os.path.join(self.home_path, "__metadata")
             self.server_path = os.path.join(self.home_path, self.server_name)
