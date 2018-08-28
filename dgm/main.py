@@ -78,7 +78,7 @@ def _monitor(dgm):
     """ Add directory to DGM - don't support recursive to child directories yet """
     for src_dir in dgm.args.dirname:
         src_dir = _canonical_file(src_dir)
-        self._add_directory(src_dir)
+        _add_directory(dgm, src_dir)
 
 
 def _add(dgm):
@@ -378,13 +378,13 @@ def _config(dgm):
     _stdout_info ("Git URL: [%s]" % dgm.git_url)
     
 
-def _add_directory(dir):
+def _add_directory(dgm, dir):
 
     conf_file = os.path.join(os.path.expanduser("~/.dgm"), 'config')
 
     confParser = ConfigParser.ConfigParser()
     confParser.read(conf_file)
-    confParser['monitored_directories'] = json.dumps(self.monitored_directories)
+    confParser['monitored_directories'] = json.dumps(dgm.monitored_directories)
     with open(conf_file, 'w') as f:
         confParser.write(f)
 
