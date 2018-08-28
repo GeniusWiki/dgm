@@ -9,7 +9,7 @@ import sys
 import json
 
 dgm_version="0.2"
-
+IGNORE_FILES = ['.DS_Store']
 
 def _init(dgm):
     """Create .dgm under user home directory. Also initial .dgm/config file """
@@ -219,40 +219,57 @@ def _diff(dgm):
         _run_cmd_from_home(dgm, "diff  %s %s" % (dgm_file, src_file)) 
 
 
-def _checkin(dgm):
+def _checkin_dir(dgm, src_dir):
+    dir_files = []
+    src_files = os.listdir(src_dir)
+    for fl in src_files:
+        if fl in IGNORE_FILES:
+            continue
+
+        fl = os.path.join(src_dir, fl)
+        if os.path.isfile(fl):
+            dir_files.append(fl)
+
+    dgm.args.filename = dir_files
+    _checkin(dgm, auto_add=True)
+
+
+def _checkin(dgm, auto_add=False):
     """ Copy source files to DGM """
     
     force = dgm.args.f
     is_all_files = _is_allfiles(dgm.args.filename)
     dirty = False
     ret_code = 0
-        
     for dgm_file, src_file in _processed_files(dgm):
-            
+        if not os.path.isfile(src_file):
+            _checkin_dir(dgm, src_file)
+            continue
+
         if not os.path.exists(src_file):
             _stdout_error("File %s does not exist" % src_file)
             ret_code = 1
             continue
 
-        if not os.path.exists(dgm_file):
+        if not auto_add and not os.path.exists(dgm_file):
             _stdout_error("%s does not in  in DGM yet, run <dgm add> to add this file first." % src_file)
             ret_code = 1
             continue
-        
+
         if os.path.isfile(src_file):
-  
+
             overwrite = not os.path.exists(dgm_file)
             if not overwrite:
-                #DGM file exist, check if it is older than source
+                # DGM file exist, check if it is older than source
                 if _compare_file_mtime(src_file, dgm_file) > 0:
                     overwrite = True
                 elif not force and not is_all_files:
-                    #if parameters is with real file names, then we need explicitly to tell user if the files are applied or not
+                    # if parameters is with real file names, then we need explicitly to tell user if the files are applied or not
                     if _compare_file_mtime(src_file, dgm_file) == 0:
                         _stdout_error("%s DGM file is same than source file. Try use -f option." % src_file)
                     else:
                         _stdout_error("%s DGM file is newer than source file. Try use -f option or apply first." % src_file)
-                    
+
             if force or overwrite:
                 _copy(src_file, dgm_file)
                 _run_cmd_from_home(dgm, "git add %s" % dgm_file)
@@ -262,14 +279,17 @@ def _checkin(dgm):
             _stdout_error("Source file %s is directory - DGM can not process in directory level" % src_file)
             ret_code = 1
             continue
-    
+
     if not dirty:
         _stdout_info("No file is checked in")
     else:
         if not dgm.args.ic:
             _run_cmd_from_home(dgm, "git commit -m'Auto commit at %s'" % datetime.now())
-            
+
     exit(ret_code)
+
+
+
                 
 def _commit(dgm):
     """ Commit change to local git repository """
@@ -380,8 +400,8 @@ def _config(dgm):
 
 def _add_directory(dgm, dir):
 
+    dgm.monitored_directories.append(dir)
     conf_file = os.path.join(os.path.expanduser("~/.dgm"), 'config')
-
     confParser = ConfigParser.ConfigParser()
     confParser.read(conf_file)
     confParser.set("config", 'monitored_directories', json.dumps(dgm.monitored_directories))
