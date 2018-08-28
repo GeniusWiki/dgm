@@ -679,11 +679,12 @@ class DGM:
                 self.git_url = None
             
             self.group  = confParser.get('config', 'group')
-            md = confParser.get('config', 'monitored_directories')
-            if not md:
+            try:
+                md = confParser.get('config', 'monitored_directories')
+            except ConfigParser.NoOptionError:
                 md = []
+
             self.monitored_directories  = json.loads(md)
-            
             #other variables
             self.meta_path = os.path.join(self.home_path, "__metadata")
             self.server_path = os.path.join(self.home_path, self.server_name)
