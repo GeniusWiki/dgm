@@ -589,7 +589,7 @@ class DGM:
         
         #Read input args
         parser = ArgumentParser(prog='dgm', description='Distribute file git management.')
-        subparsers = parser.add_subparsers(dest='command', help='Command help', default='status')
+        subparsers = parser.add_subparsers(dest='command', help='Command help')
         
         #Init
         cmd_init_parser = subparsers.add_parser("init", help="Init local DGM repository")
