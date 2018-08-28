@@ -231,7 +231,7 @@ def _list_dir_files(dgm, src_dir):
             dir_files.append(fl)
         else:
             dir_files.extend(_list_dir_files(dgm, fl))
-            
+
     return dir_files
 
 
@@ -412,9 +412,17 @@ def _add_directory(dgm, dir):
     with open(conf_file, 'w') as f:
         confParser.write(f)
 
-    _stdout_info("These files will be add to DGM after next `dgm checkin .` is executed: ")
     for fl in _list_dir_files(dgm, dir):
-        _stdout_info(fl)
+        _stdout(fl)
+
+    _stdout_info(" ")
+    _stdout_info("Do you want to add these files to DGM? (y|yes)")
+    _stdout_info(" ")
+
+    input_str = sys.stdin.read().strip()
+    if input_str.lower() == 'y' or input_str.lower() == 'yes':
+        _checkin_dir(dgm, dir)
+
 
 def main():
     dgm = DGM()
