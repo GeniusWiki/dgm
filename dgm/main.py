@@ -105,8 +105,11 @@ def _add(dgm):
                 
             _stdout_info("%s is added to DGM repository" % src_file)
         else:
-            _stdout_error("%s is directory, only files are accepted." % src_file)    
-            ret_code = 1        
+            if src_file.endswith('/'):
+                _stdout_info('Directory %s is added to DGM' % src_file)
+            else:
+                _stdout_error("%s is directory, it must ends with '/'." % src_file)    
+                ret_code = 1        
 
     exit(ret_code)
 
@@ -291,13 +294,18 @@ def _status(dgm):
         for dgm_file, src_file in files:
             _stdout_info ("* %s" % src_file)
             count += 1
-        
+
+    if not all_info:    
+        files = status_files[FileStatus.src_notfound]
+        if files:
+            _stdout_info("Note: %d source file%s doesn't exist in your local file system." % (len(files), 's' if len(files) > 1 else ''))
+
     if all_info:
         files = status_files[FileStatus.src_notfound]
         if files:
-            _stdout("Source file missing:")
-            _stdout("    Use dgm apply <file> to copy them from DGM repository")
-            _stdout("  ")
+            _stdout_error("Source file missing:")
+            _stdout_error("    Use dgm apply <file> to copy them from DGM repository")
+            _stdout_error("  ")
             for dgm_file, src_file in files:
                 _stdout_error("- %s" % src_file)
                 count += 1
@@ -371,8 +379,6 @@ def main():
         _init(dgm)
     elif dgm.args.command == 'add':
         _add(dgm)
-    elif dgm.args.command == 'status':
-        _status(dgm)
     elif dgm.args.command == 'commit':
         _commit(dgm)
     elif dgm.args.command == 'push':
@@ -389,8 +395,8 @@ def main():
         _remove(dgm)
     elif dgm.args.command == 'diff':
         _diff(dgm)
-    elif dgm.args.command == 'update':
-        _update(dgm)
+    else:
+        _status(dgm)
         
 def _processed_files(dgm):
     files = dgm.args.filename
